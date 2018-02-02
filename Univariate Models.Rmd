@@ -1,0 +1,89 @@
+---
+title: "Univariate Models"
+author: "Megan Sporre"
+date: "January 25, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r}
+trees<-read.csv("treedata_subset.csv")
+install.packages("car")
+library(car)
+
+```
+```{r}
+#Modeling Abies fraseri
+abies<-subset(trees, species=="Abies fraseri")
+abies.all<-lm(abies$cover~abies$elev+abies$tci+abies$streamdist+as.factor(abies$disturb)+abies$beers)
+summary(abies.all)
+Anova(abies.all, type=3)
+
+
+#remove beers, stream dist, disturbance, and tci
+abies.mod6<-lm(abies$cover~abies$elev)
+summary(abies.mod6)
+Anova(abies.mod6,type=3)
+
+pairs(abies$cover~abies$elev+abies$tci+abies$streamdist)
+
+#For *Abies fraseri* when running the intial model that included all possible variables, the results of summary function show that evelation and one category of disturbance are significant in modeling species cover. the output of the Anova function shows that only elevation is significant. When reducing the model to only significant terms (elevation), the p-value for elevation becomes more significant, but R-squared is reduced fom 0.5 to 0.46.
+
+```
+```{r}
+#Modeling Acer rubrum
+acer<-subset(trees, species=="Acer rubrum")
+acer.all<-lm(acer$cover~acer$elev+acer$tci+acer$streamdist+as.factor(acer$disturb)+acer$beers)
+summary(acer.all)
+Anova(acer.all, type=3)
+
+#remove disturbance
+acer.mod2<-lm(acer$cover~acer$elev+acer$streamdist+acer$beers)
+summary(acer.mod2)
+Anova(acer.mod2)
+#R Squared decreased slightly but significnce of other factors increased.
+
+##Modeling interactions
+acer<-subset(trees, species=="Acer rubrum")
+acer.mod3<-lm(acer$cover~acer$elev*acer$beers+acer$streamdist)
+summary(acer.mod3)
+Anova(acer.mod3, type=3)
+pairs(acer$cover~acer$elev*acer$beers+acer$streamdist, lower.panel=panel.smooth)
+
+#For *Acer rubrum*, intial model that included all possible variables, the results of summary function  and Anova show that all categories except disturbance and tci are important when modeling species cover. When running the model with disturbance and tci removed all categories became increasingly significant and the R-squared decreased. When accounting for interactions between variables, elevation and beers, there was a significant interaction between these two variables and when modeling the interaction, the significance and R-squared of the model increased. 
+
+#Based on R-squared values (0.46 vs 0.06) and model simplicity, we are able to better explain variance in *Abies fraseri* compared to *Acer rubrum*. This makes sense when thinking about a habitat specialist versus a habitat generalist, because a generalist can grow anywhere regardless of some variables and this woul be reflected in a low R-squared.
+```
+```{r}
+##Using a GLM with poisson error - Acer
+acer.glm=glm(cover~streamdist+elev*beers,data=acer,family='poisson')
+summary(acer.glm)
+
+#When changing the model to a glm, elevation becomes no longer important in the model, but a relationship between elevations and beers is still significant. The R-squared value also decreased slightly.
+```
+```{r}
+##Using a GLM with poisson error - Abies
+abies.glm=glm(cover~elev,data=abies,family='poisson')
+summary(abies.glm)
+
+#When changing the model to a glm, the R-squared decreased, but elevvation remained significant.
+```
+```{r}
+#Assessing R^2
+
+pseudo_r2 = function(glm_mod) {
+     1 -  glm_mod$deviance / glm_mod$null.deviance
+}
+
+pseudo_r2(acer.glm)
+pseudo_r2(abies.glm)
+```
+```{r}
+#comparing using ANOVA
+anova(acer.glm,acer.mod3)
+anova(abies.glm,abies.mod6)
+
+#When comparing both glm and olm models for each species, glm models greatly reduced the deviance seen in olm models.
+```
+Overall, we found that we are able to better model the relationship between cover and habitat variables for a habitat specialist species compared to a habitat genaralist. However both glm and ols models have low R-squared values and high variance. 
