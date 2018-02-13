@@ -1,0 +1,83 @@
+---
+title: "Multivariate Models"
+author: "Megan Sporre"
+date: "February 6, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(lattice)
+library(permute)
+library(vegan)
+data(dune)
+data(dune.env)
+?dune
+```
+
+```{r}
+dune_mds=metaMDS(dune, trymax=5)
+plot(dune_mds, type='n')
+ text(dune_mds, 'sp', cex=.5)
+ # generate vector of colors 
+ color_vect = rev(terrain.colors(6))[-1]
+ points(dune_mds, 'sites', pch=19, 
+        col=color_vect[dune.env$Moisture])
+ legend('topright', paste("Moisture =", 1:5, sep=''), 
+        col=color_vect, pch=19)
+ 
+ #This graphic shows that moisture is important in describing dune vegetation. The goal of creating this plot is to visualize how the variable mositure is correlated to  vegetation and suggests that dune vegetation is linked to the amount of moisture.
+```
+```{r}
+cca_tree = cca(dune~ ., data=dune.env)
+RsquareAdj(cca_tree, 10)
+anova(cca_tree, permutations = 10)
+anova(cca_tree, by='margin', permutations = 10)
+plot(cca_tree, type='n', scaling=1)
+orditorp(cca_tree, display='sp', cex=0.5, scaling=1, col='blue')
+text(cca_tree, display='bp', col='red')
+#moisture explains the majority of variation aling the x-axis and managment and moisture explain most of the variation along the y-axis.
+
+
+```
+```{r}
+cca_moist = cca(dune~ Moisture, data=dune.env)
+RsquareAdj(cca_moist, 10)
+
+```
+```{r}
+cca_manure = cca(dune~ Manure, data=dune.env)
+RsquareAdj(cca_manure, 100)
+
+cca_management = cca(dune~ Management, data=dune.env)
+RsquareAdj(cca_manure, 100)
+
+cca_moistman = cca(dune~ Moisture+Management, data=dune.env)
+RsquareAdj(cca_moistman, 100)
+anova(cca_moistman, permutations = 100)
+anova(cca_moistman, by='margin', permutations = 100)
+plot(cca_moistman, type='n', scaling=1)
+orditorp(cca_moistman, display='sp', cex=0.5, scaling=1, col='blue')
+text(cca_moistman, display='bp', col='red')
+
+#The moisture and managment model has the best r-squared.
+
+```
+The two analyses agree with one another, moisture is a significant variable in explaining dunes. In the CCA, management also had a slight effect on dunes. We did not test the effect of managment in the NMDS of dune vegetation. Upon running NMDS for Management we see that it explains variation in the y-axis although there is not as clear of a delineation.
+
+```{r}
+dune_mdsman=metaMDS(dune, trymax=5)
+plot(dune_mdsman, type='n')
+ text(dune_mdsman, 'sp', cex=.5)
+ # generate vector of colors 
+ color_vect = rev(terrain.colors(6))[-1]
+ points(dune_mdsman, 'sites', pch=19, 
+        col=color_vect[dune.env$Management])
+ legend('topright', paste("Management =", 1:4, sep=''), 
+        col=color_vect, pch=19)
+```
