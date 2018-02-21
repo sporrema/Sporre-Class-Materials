@@ -1,0 +1,92 @@
+---
+title: "Spatial Modeling HW"
+author: "Megan Sporre"
+date: "February 15, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(vegan)
+data(BCI)
+data("BCI.env")
+## UTM Coordinates (in metres)
+BCI_xy = data.frame(x = rep(seq(625754, 626654, by=100), each=5), 
+                    y = rep(seq(1011569,  1011969, by=100), len=50))
+?BCI
+```
+```{r}
+?BCI
+abu <- colSums(BCI)
+plot(density(abu))
+quantile(abu)
+bci_rare = BCI[ , abu <= 25]
+bci_comm = BCI[ , abu > 25]
+plot()
+BCI
+```
+
+```{r}
+## compute bray curtis distance for the community matrix - common species
+comm_dist.comm = vegdist(bci_comm)
+plot(xy_dist, comm_dist.comm)
+abline(lm(comm_dist.comm ~ xy_dist), lwd=3, col='red')
+lines(lowess(xy_dist, comm_dist.comm), lwd=3, col='pink')
+abline(v = max_dist, col='red', lwd=3, lty=2)
+
+#mantel Test
+comm_mantel = mantel(xy_dist, comm_dist.comm)
+comm_mantel
+
+## compute bray curtis distance for the community matrix - rare species
+comm_dist.rare = vegdist(bci_rare)
+plot(xy_dist, comm_dist.rare)
+abline(lm(comm_dist.rare ~ xy_dist), lwd=3, col='red')
+lines(lowess(xy_dist, comm_dist.rare), lwd=3, col='pink')
+abline(v = max_dist, col='red', lwd=3, lty=2)
+
+#mantel Test
+comm_mantel.rare = mantel(xy_dist, comm_dist.rare)
+comm_mantel.rare
+```
+```{r}
+## modeling common species
+library(nlme)
+Abundance = apply(BCI, 1, function(x) sum(x > 0))
+
+abundance_dat = data.frame(sr, BCI.env, BCI_xy)
+
+abundance_lm = gls(Drypetes.standleyi ~ Cordia.lasiocalyx+Hirtella.triandra+Picramnia.latifolia+Quassia.amara+Tabernaemontana.arborea+Trattinnickia.aspera+Xylopia.macrantha,data=BCI )
+
+par(mfrow=c(1,1))
+plot(Variogram(abundance_lm))
+summary(abundance_lm)
+
+res = residuals(abundance_lm)
+plot(dist(abundance_dat[, c('x', 'y')]), dist(res))
+lines(lowess(dist(abundance_dat[, c('x', 'y')]), dist(res)), col='red', lwd=2)
+abline(v = max_dist, col='red', lwd=3, lty=2)
+
+abu_exp = update(abundance_lm, corr=corExp(form= ~x + y))
+plot(Variogram(abu_exp, maxDist = max_dist))
+
+
+```
+```{r}
+abundance_lm.1 = gls(Drypetes.standleyi ~ Xylopia.macrantha,data=BCI )
+
+par(mfrow=c(1,1))
+plot(Variogram(abundance_lm.1))
+summary(abundance_lm.1)
+
+res = residuals(abundance_lm.1)
+plot(dist(abundance_dat[, c('x', 'y')]), dist(res))
+lines(lowess(dist(abundance_dat[, c('x', 'y')]), dist(res)), col='red', lwd=2)
+abline(v = max_dist, col='red', lwd=3, lty=2)
+```
+
